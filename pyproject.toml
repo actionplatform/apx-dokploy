@@ -6,7 +6,7 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 authors = [{ name = "Action Platform", email = "cloud@actionplatform.io" }]
-dependencies = ["action-platform>=0.31.0"]
+dependencies = ["action-platform>=0.28.1"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6", "action-platform[mcp]"]
