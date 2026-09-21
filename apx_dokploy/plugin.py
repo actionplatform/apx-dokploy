@@ -17,7 +17,7 @@ class DokployPlugin(Plugin):
         "Deploy a Docker image the CI publishes to a Dokploy instance; "
         "read its projects, applications and deployments"
     )
-    min_core = "0.31.0"
+    min_core = "0.28.1"
     needs = [
         "env: DOKPLOY_URL, DOKPLOY_API_KEY on a machine (the plugin's options on the platform)",
         "net: the Dokploy instance's url; the image registry (ghcr.io by default)",
