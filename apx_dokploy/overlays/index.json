@@ -1,0 +1,10 @@
+{
+  "clouds": [
+    {
+      "id": "dokploy",
+      "description": "Docker image published by the CI on every release, run by Dokploy",
+      "types": ["web"],
+      "languages": ["python", "node", "go", "java", "kotlin", "ruby"]
+    }
+  ]
+}

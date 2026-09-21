@@ -1,0 +1,14 @@
+{
+  "project_name": "My Project",
+  "project_slug": "{{ cookiecutter.project_name|lower|replace(' ', '-') }}",
+  "github_owner": "actionplatform",
+  "package_name": "{{ cookiecutter.project_slug|replace('-', '_') }}",
+  "language": ["python", "node", "go", "java", "kotlin", "ruby"],
+  "type": ["web"],
+  "ci": ["github", "gitlab", "jenkins"],
+  "_kind": "cloud",
+  "_cloud": "dokploy",
+  "_description": "Docker image published by the CI on every release, run by Dokploy",
+  "_types": ["web"],
+  "_copy_without_render": [".github/workflows/docker-publish.yml"]
+}

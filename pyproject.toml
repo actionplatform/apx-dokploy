@@ -1,0 +1,38 @@
+[project]
+name = "apx-dokploy"
+version = "0.1.0"
+description = "Dokploy for Action Platform: the dokploy deploy target (a Docker image the CI publishes, pulled by Dokploy), its overlay, readiness checks, and tools to read projects, applications and deployments."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "Action Platform", email = "cloud@actionplatform.io" }]
+dependencies = ["action-platform>=0.31.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "action-platform[mcp]"]
+
+[project.entry-points."action_platform.plugins"]
+dokploy = "apx_dokploy:DokployPlugin"
+
+[project.entry-points."action_platform.deploy_target"]
+dokploy = "apx_dokploy.target:DokployTarget"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["apx_dokploy*"]
+
+[tool.setuptools.package-data]
+apx_dokploy = ["overlays/**/*", "overlays/**/.*", "overlays/**/.github/workflows/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+extend-exclude = ["apx_dokploy/overlays"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
