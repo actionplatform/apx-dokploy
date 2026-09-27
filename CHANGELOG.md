@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.2 — 2026-09-27
+
+### Bug Fixes
+- **target:** find the application by name; project.all has no appName
+
 ## v0.3.1 — 2026-09-27
 
 ### Bug Fixes
