@@ -8,8 +8,7 @@ from action_platform.core.context import Context
 from action_platform.core.exception import DeployError
 from action_platform.plugins.options import FileOptions
 
-from apx_dokploy import client
-from apx_dokploy import target as target_module
+from apx_dokploy import deployments, registry
 from apx_dokploy.client import Dokploy
 from apx_dokploy.target import DokployTarget
 from tests.fake import FakeDokploy
@@ -43,8 +42,8 @@ class TargetCase(unittest.TestCase):
                 method, target, body, api.api_key
             ),
         )
-        self._patch(client, "image_exists", lambda *a, **k: True)
-        self._patch(target_module, "POLL", 0)
+        self._patch(registry, "image_exists", lambda *a, **k: True)
+        self._patch(deployments, "POLL", 0)
         self.home = TemporaryDirectory()
         self.addCleanup(self.home.cleanup)
         self._patch(os, "environ", {"AP_HOME": self.home.name})
@@ -78,7 +77,7 @@ class ReadinessTest(TargetCase):
         self.assertNotIn("dokploy.application", checks)
 
     def test_unpublished_image_blocks(self):
-        self._patch(client, "image_exists", lambda *a, **k: False)
+        self._patch(registry, "image_exists", lambda *a, **k: False)
 
         checks = {c.id: c for c in DokployTarget().readiness(self.ctx())}
 
@@ -237,11 +236,11 @@ class LifecycleTest(TargetCase):
         target = DokployTarget(
             project="acme", application="api", image="registry.example.com/acme/api"
         )
-        ctx = self.ctx()
+        spec = target.spec(self.ctx())
 
-        self.assertEqual(target._project(ctx), "acme")
-        self.assertEqual(target._app_name(ctx), "api-prod")
-        self.assertEqual(target._image(ctx), "registry.example.com/acme/api")
+        self.assertEqual(spec.project, "acme")
+        self.assertEqual(spec.app_name, "api-prod")
+        self.assertEqual(spec.image, "registry.example.com/acme/api")
 
 
 class SettingsTest(TargetCase):
@@ -276,27 +275,56 @@ class RegistryTest(unittest.TestCase):
             ]
         )
         with (
-            mock.patch.object(client, "_head", lambda target, auth: next(answers)),
-            mock.patch.object(client, "_token", lambda challenge, basic: "t"),
+            mock.patch.object(registry, "_head", lambda target, auth: next(answers)),
+            mock.patch.object(registry, "_token", lambda challenge, basic: "t"),
         ):
-            self.assertTrue(client.image_exists("ghcr.io/acme/shop", "1.0.0"))
+            self.assertTrue(registry.image_exists("ghcr.io/acme/shop", "1.0.0"))
 
     def test_missing_tag_is_false_and_other_statuses_raise(self):
-        with mock.patch.object(client, "_head", lambda target, auth: (404, "")):
-            self.assertFalse(client.image_exists("ghcr.io/acme/shop", "1.0.0"))
+        with mock.patch.object(registry, "_head", lambda target, auth: (404, "")):
+            self.assertFalse(registry.image_exists("ghcr.io/acme/shop", "1.0.0"))
 
-        with mock.patch.object(client, "_head", lambda target, auth: (500, "")):
+        with mock.patch.object(registry, "_head", lambda target, auth: (500, "")):
             with self.assertRaises(DeployError):
-                client.image_exists("ghcr.io/acme/shop", "1.0.0")
+                registry.image_exists("ghcr.io/acme/shop", "1.0.0")
 
     def test_docker_hub_and_custom_registries_split(self):
         self.assertEqual(
-            client._split("nginx"), ("registry-1.docker.io", "library/nginx")
+            registry._split("nginx"), ("registry-1.docker.io", "library/nginx")
         )
         self.assertEqual(
-            client._split("acme/shop"), ("registry-1.docker.io", "acme/shop")
+            registry._split("acme/shop"), ("registry-1.docker.io", "acme/shop")
         )
-        self.assertEqual(client._split("ghcr.io/acme/shop"), ("ghcr.io", "acme/shop"))
+        self.assertEqual(registry._split("ghcr.io/acme/shop"), ("ghcr.io", "acme/shop"))
         self.assertEqual(
-            client._split("localhost:5000/shop"), ("localhost:5000", "shop")
+            registry._split("localhost:5000/shop"), ("localhost:5000", "shop")
         )
+
+
+class PartsTest(TargetCase):
+    def test_one_responsibility_is_swapped_without_touching_the_rest(self):
+        from dataclasses import replace as swap
+
+        from apx_dokploy.abc import Deployments
+
+        class Instant(Deployments):
+            def start(self, app, spec):
+                self.started = spec.reference
+
+            def wait(self, app):
+                return "done"
+
+            def previous_version(self, app):
+                return None
+
+        instant = Instant()
+
+        class Target(DokployTarget):
+            def parts(self, spec):
+                return swap(super().parts(spec), deployments=instant)
+
+        result = Target().deploy(self.ctx())
+
+        self.assertTrue(result.ok)
+        self.assertEqual(instant.started, "ghcr.io/acme/shop:1.2.0")
+        self.assertFalse([c for c in self.fake.calls if c[1] == "application.deploy"])
