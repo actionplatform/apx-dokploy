@@ -28,7 +28,24 @@ class FakeDokploy:
         return getattr(self, procedure.replace(".", "_"))(body or query)
 
     def project_all(self, _: dict) -> list:
-        return self.projects
+        """What Dokploy's project.all returns: an environment's applications carry applicationId, name and applicationStatus only."""
+        keep = ("applicationId", "name", "applicationStatus")
+
+        return [
+            {
+                **project,
+                "environments": [
+                    {
+                        **env,
+                        "applications": [
+                            {k: a[k] for k in keep} for a in env["applications"]
+                        ],
+                    }
+                    for env in project["environments"]
+                ],
+            }
+            for project in self.projects
+        ]
 
     def project_create(self, body: dict) -> dict:
         project = {
