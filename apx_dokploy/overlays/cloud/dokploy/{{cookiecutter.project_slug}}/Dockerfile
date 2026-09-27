@@ -1,13 +1,17 @@
 # Two stages, the same shape for every language: the build image assembles the app with ap-build,
 # the runtime image runs it. The app serves HTTP on $PORT.
 {%- set lang = "java" if cookiecutter.language in ["java", "kotlin"] else cookiecutter.language %}
-FROM ghcr.io/actionplatform/build-{{ lang }}:0 AS build
+{%- set version = {"python": "3.12", "node": "22", "go": "1.27", "java": "21", "ruby": "3.3"}[lang] %}
+{%- set arg = lang|upper ~ "_VERSION" %}
+# The language version: every build/runtime image exists per version (see actionplatform/images-base versions.json).
+ARG {{ arg }}={{ version }}
+FROM ghcr.io/actionplatform/build-{{ lang }}:${ {{- arg -}} } AS build
 ARG TARGETARCH
 WORKDIR /w
 COPY . .
 RUN AP_ARCH=$([ "$TARGETARCH" = "amd64" ] && echo x86_64 || echo arm64) AP_ARTIFACTS=/out ap-build package
 
-FROM ghcr.io/actionplatform/runtime-{{ lang }}:0
+FROM ghcr.io/actionplatform/runtime-{{ lang }}:${ {{- arg -}} }
 WORKDIR /app
 COPY --from=build /out /app
 ENV PORT=8000
