@@ -261,14 +261,9 @@ class DokployTarget(DeployTarget):
 
     def delete(self, ctx: Context) -> None:
         spec = self.spec(ctx)
-        parts = self.parts(spec)
-        app = parts.provisioner.find(spec)
 
-        if app is None:
-            return
-
-        parts.api.post("application.delete", {"applicationId": app["applicationId"]})
-        logger.info("dokploy: deleted %s", app["appName"])
+        for gone in self.parts(spec).provisioner.remove(spec):
+            logger.info("dokploy: deleted %s", gone)
 
     def verify(self, version: str, stage: str | None = None) -> bool:
         app = self._application(stage)

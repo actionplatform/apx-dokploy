@@ -51,6 +51,10 @@ class Provisioner(ABC):
     def duplicates(self, spec: Spec) -> list[Record]:
         """Every application of the scope beyond the one `find` returns."""
 
+    @abstractmethod
+    def remove(self, spec: Spec) -> list[str]:
+        """The scope's applications, then what they leave empty; what went."""
+
 
 class Domains(ABC):
     """How the application is reached."""
