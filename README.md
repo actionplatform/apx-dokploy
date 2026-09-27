@@ -39,6 +39,7 @@ target = "dokploy"
 # project = "shop"                       # default: [project] name
 # application = "shop"                   # default: [project] name
 # port = 8000
+# health = "/health"                    # checked after the deploy; "" skips it
 
 [deploy.domains]
 prod = "shop.example.com"
@@ -79,6 +80,7 @@ Tests never reach the network: `tests/fake.py` is a Dokploy in memory.
 | `provision.py` | `Provisioner`: project → environment (scope) → application |
 | `domains.py` | `Domains`: the scope's domain, or one Dokploy generates |
 | `deployments.py` | `Deployments`: point at the tag, deploy, wait, previous version |
+| `health.py` | `Health`: the app answers its health route after the deploy |
 | `checks.py` | `Readiness`: settings, image, API key, application state |
 | `settings.py` | where a value comes from: argument, job env, process env, options file |
 | `tools.py`, `cli.py` | read-only views for MCP and the terminal |

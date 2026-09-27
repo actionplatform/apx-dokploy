@@ -82,6 +82,14 @@ class Deployments(ABC):
         """Why the latest deployment failed: its error and the tail of its log."""
 
 
+class Health(ABC):
+    """Whether the deployed application answers."""
+
+    @abstractmethod
+    def answers(self, url: str) -> str | None:
+        """None when `url` answers 2xx in time; otherwise what it did instead."""
+
+
 class Readiness(ABC):
     """One check a deploy needs to pass, run without changing anything."""
 
