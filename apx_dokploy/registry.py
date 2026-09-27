@@ -33,6 +33,11 @@ class OciRegistry(Registry):
         return image_exists(image, tag, username, password)
 
 
+def host_of(image: str) -> str:
+    """The registry an image reference names: `ghcr.io` for `ghcr.io/acme/shop`, Docker Hub for a bare name."""
+    return _split(image)[0]
+
+
 def image_exists(
     image: str,
     tag: str,
