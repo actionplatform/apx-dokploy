@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
-from action_platform.core.scaffold.templates import Matrix, with_plugin_clouds
+from action_platform.core.scaffold.catalog import Matrix, with_plugin_clouds
 from action_platform.plugins import Loaded, Plugins, PluginState, registry
 
 from apx_dokploy import DokployPlugin
