@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.0 — 2026-09-27
+
+### Bug Fixes
+- **overlay:** take the package's architecture from the build stage
+
 ## v0.4.0 — 2026-09-27
 
 ### Features
