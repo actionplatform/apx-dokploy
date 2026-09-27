@@ -9,6 +9,7 @@ from action_platform.core.exception import DeployError
 from action_platform.plugins.options import FileOptions
 
 from apx_dokploy import deployments, registry
+from apx_dokploy import target as target_module
 from apx_dokploy.client import Dokploy
 from apx_dokploy.target import DokployTarget
 from tests.fake import FakeDokploy
@@ -167,13 +168,26 @@ class DeployTest(TargetCase):
         creates = [c for c in self.fake.calls if c[1] == "application.create"]
         self.assertEqual(len(creates), 1)
 
-    def test_failed_deployment_is_reported(self):
+    def test_failed_deployment_is_reported_with_its_reason(self):
         self.fake.deploy_ends = "error"
 
-        result = DokployTarget().deploy(self.ctx())
+        with mock.patch.object(target_module, "emit") as said:
+            result = DokployTarget().deploy(self.ctx())
 
         self.assertFalse(result.ok)
-        self.assertIn("error", result.error)
+        self.assertIn("container exited with code 1", result.error)
+        self.assertIn("address already in use", said.call_args.args[0])
+
+    def test_an_unpublished_image_stops_the_deploy_before_dokploy(self):
+        self._patch(registry, "image_exists", lambda *a, **k: False)
+
+        with self.assertRaises(DeployError) as raised:
+            DokployTarget().deploy(self.ctx())
+
+        self.assertIn(
+            "ghcr.io/acme/shop:1.2.0 is not in the registry", str(raised.exception)
+        )
+        self.assertFalse([c for c in self.fake.calls if c[1] == "application.deploy"])
 
     def test_stages_are_separate_environments(self):
         target = DokployTarget()
@@ -315,6 +329,9 @@ class PartsTest(TargetCase):
                 return "done"
 
             def previous_version(self, app):
+                return None
+
+            def failure(self, app):
                 return None
 
         instant = Instant()

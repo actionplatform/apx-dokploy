@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 
+from action_platform.core.exception import DeployError
 from action_platform.logging import emit
 
 from apx_dokploy.abc import Api, Deployments, Record
@@ -12,6 +13,7 @@ from apx_dokploy.spec import Spec
 POLL = 5
 WAIT = 900
 FINAL = ("done", "error")
+LOG_TAIL = 30
 
 
 class DokployDeployments(Deployments):
@@ -76,3 +78,29 @@ class DokployDeployments(Deployments):
                 return version
 
         return None
+
+    def failure(self, app: Record) -> str | None:
+        """`errorMessage` and the log's last lines of the newest deployment; `readLogs` is missing on older Dokploy, which then gives the error alone."""
+        history = (
+            self.api.get("deployment.all", applicationId=app["applicationId"]) or []
+        )
+
+        if not history:
+            return None
+
+        latest = history[0]
+        lines = [str(latest.get("errorMessage") or "").strip()]
+
+        try:
+            log = self.api.get(
+                "deployment.readLogs",
+                deploymentId=latest["deploymentId"],
+                tail=LOG_TAIL,
+            )
+        except DeployError:
+            log = ""
+
+        lines.append(str(log or "").strip())
+        reason = "\n".join(line for line in lines if line)
+
+        return reason or None

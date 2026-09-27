@@ -26,7 +26,7 @@ from pathlib import Path
 from action_platform.abc import DeployTarget
 from action_platform.core.context import Check, Context, DeployResult, Diagnosis
 from action_platform.core.exception import DeployError
-from action_platform.logging import logger
+from action_platform.logging import emit, logger
 
 from apx_dokploy.abc import (
     Api,
@@ -148,11 +148,20 @@ class DokployTarget(DeployTarget):
     def deploy(self, ctx: Context) -> DeployResult:
         spec = self.spec(ctx)
         parts = self.parts(spec)
+        image = ImageCheck(self.registry).run(spec)
+
+        if image.blocking:
+            raise DeployError(f"{image.detail}: {image.fix}")
+
         app = parts.provisioner.ensure(spec)
         parts.domains.ensure(app, spec)
         parts.deployments.start(app, spec)
         status = parts.deployments.wait(app)
         ok = status == "done"
+        reason = None if ok else parts.deployments.failure(app)
+
+        if reason:
+            emit(f"dokploy: {reason}")
         logger.info(
             "dokploy: %s %s to %s",
             spec.version,
@@ -165,7 +174,10 @@ class DokployTarget(DeployTarget):
             target=self.name,
             version=spec.version,
             url=parts.domains.url_of(app),
-            error=None if ok else f"dokploy deployment ended {status}",
+            error=None
+            if ok
+            else f"dokploy deployment ended {status}"
+            + (f": {reason.splitlines()[0]}" if reason else ""),
         )
 
     def rollback(self, ctx: Context, to_version: str | None = None) -> None:
