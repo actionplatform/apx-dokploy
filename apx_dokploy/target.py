@@ -353,7 +353,12 @@ class DokployTarget(DeployTarget):
             )
             emit(f"dokploy: created environment {ctx.stage}")
 
-        app = self._find_in(environment, ctx)
+        found = self._find_in(environment, ctx)
+        app = (
+            api.get("application.one", applicationId=found["applicationId"])
+            if found
+            else None
+        )
 
         if app is None:
             app = api.post(
@@ -453,11 +458,14 @@ class DokployTarget(DeployTarget):
     def _find_in(
         self, environment: dict[str, Any], ctx: Context
     ) -> dict[str, Any] | None:
-        """Dokploy appends a random suffix to the appName it is given (`shop-prod` becomes `shop-prod-x1y2z3`); either form is this application."""
-        wanted = re.compile(rf"{re.escape(self._app_name(ctx))}(-[a-z0-9]{{6}})?")
+        """The environment is the scope, so the application is the one named after it. `project.all` lists applications with `applicationId`, `name` and `applicationStatus` only; `appName` — which Dokploy suffixes (`shop-prod` becomes `shop-prod-x1y2z3`) — is matched when a response carries it."""
+        name = self._application(ctx)
+        app_name = re.compile(rf"{re.escape(self._app_name(ctx))}(-[a-z0-9]{{6}})?")
 
         for app in environment.get("applications") or []:
-            if wanted.fullmatch(str(app.get("appName") or "")):
+            if app.get("name") == name or app_name.fullmatch(
+                str(app.get("appName") or "")
+            ):
                 return app
 
         return None
