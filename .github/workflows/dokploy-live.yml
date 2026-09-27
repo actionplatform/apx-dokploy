@@ -1,0 +1,22 @@
+name: Dokploy live
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: .github/scripts/dokploy-up.sh >> "$GITHUB_ENV"
+      - run: pytest -q tests/live
+      - if: failure()
+        run: sudo docker service ls; sudo docker service logs dokploy --tail 80 2>&1 | tail -80
