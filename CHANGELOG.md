@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.0 — 2026-09-27
+
+### Features
+- **overlay:** the Dockerfile names the language version
+
+### Tests
+- import the matrix from scaffold.catalog, where action-platform 0.32 keeps it
+
 ## v0.1.0 — 2026-09-21
 
 ### Features
