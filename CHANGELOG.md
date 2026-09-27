@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.1 — 2026-09-27
+
+### Bug Fixes
+- **target:** find the application Dokploy renamed with a suffix
+
 ## v0.3.0 — 2026-09-27
 
 ### Features
