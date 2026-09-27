@@ -47,6 +47,10 @@ class Provisioner(ABC):
     def ensure(self, spec: Spec) -> Record:
         """The application of the scope, creating whatever level is missing."""
 
+    @abstractmethod
+    def duplicates(self, spec: Spec) -> list[Record]:
+        """Every application of the scope beyond the one `find` returns."""
+
 
 class Domains(ABC):
     """How the application is reached."""

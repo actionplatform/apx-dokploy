@@ -154,6 +154,13 @@ class DokployTarget(DeployTarget):
             raise DeployError(f"{image.detail}: {image.fix}")
 
         app = parts.provisioner.ensure(spec)
+
+        for extra in parts.provisioner.duplicates(spec):
+            emit(
+                f"dokploy: {spec.label} also holds application {extra['applicationId']}; "
+                f"deploying {app['applicationId']}, delete the other in Dokploy"
+            )
+
         parts.domains.ensure(app, spec)
         parts.deployments.start(app, spec)
         status = parts.deployments.wait(app)
