@@ -45,6 +45,7 @@ def projects_of(api: Any) -> list[Project]:
 
 
 def applications_of(api: Any, project: str = "") -> list[Application]:
+    """`project.all` lists applications with id, name and status only; the appName and image come from `application.one`."""
     found = []
 
     for p in api.get("project.all") or []:
@@ -52,7 +53,8 @@ def applications_of(api: Any, project: str = "") -> list[Application]:
             continue
 
         for e in p.get("environments") or []:
-            for a in e.get("applications") or []:
+            for listed in e.get("applications") or []:
+                a = api.get("application.one", applicationId=listed["applicationId"])
                 found.append(
                     Application(
                         id=a["applicationId"],

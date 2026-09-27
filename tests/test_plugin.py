@@ -47,6 +47,29 @@ class PluginTest(unittest.TestCase):
 
         self.assertEqual(json.loads(result.content[0].text)["name"], "shop")
 
+    def test_applications_read_the_full_record(self):
+        from apx_dokploy.client import Dokploy as Api
+        from apx_dokploy.tools import applications_of
+
+        fake = FakeDokploy()
+        project = fake.project_create({"name": "shop"})
+        fake.application_create(
+            {
+                "name": "shop",
+                "appName": "shop-production",
+                "environmentId": project["environments"][0]["environmentId"],
+            }
+        )
+        api = Api("https://dokploy.test", "good")
+
+        with mock.patch.object(
+            Api, "_send", lambda a, m, t, b: fake.send(m, t, b, a.api_key)
+        ):
+            apps = applications_of(api)
+
+        self.assertEqual(apps[0].app_name, "shop-production-x1y2z3")
+        self.assertEqual(apps[0].environment, "production")
+
     def test_overlay_joins_the_matrix_for_every_language(self):
         merged = with_plugin_clouds(Matrix.from_dict({"clouds": []}))
         cloud = merged.cloud("dokploy")
