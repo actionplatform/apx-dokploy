@@ -62,6 +62,7 @@ A deploy job carries the options as `AP_DOKPLOY_<KEY>`.
 ## Requirements
 
 - Dokploy 0.20 or newer (projects with environments; `application.saveDockerProvider`).
+- An API key **without a rate limit** (Settings > API Keys): a deploy makes more calls than a limited key allows and gets 401 half-way.
 - The image published before the deploy: on GitHub, the overlay's workflow does it on every release. Another CI publishes `<image>:<version>` itself; the `image.published` check waits for it.
 - The container listens on `$PORT` (8000 in the overlay's Dockerfile).
 

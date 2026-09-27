@@ -87,6 +87,12 @@ class ReadinessTest(TargetCase):
         self.assertTrue(checks["image.published"].blocking)
         self.assertIn("ghcr.io/acme/shop:1.2.0", checks["image.published"].detail)
 
+    def test_a_refused_key_names_the_rate_limit(self):
+        checks = {c.id: c for c in DokployTarget().readiness(self.ctx(key="bad"))}
+
+        self.assertIn("rate limit", checks["dokploy.credentials"].detail)
+        self.assertIn("without a rate limit", checks["dokploy.credentials"].fix)
+
     def test_absent_application_is_a_warning(self):
         checks = {c.id: c for c in DokployTarget().readiness(self.ctx())}
 

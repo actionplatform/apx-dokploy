@@ -81,7 +81,7 @@ class ApiCheck(Readiness):
             self.api.get("project.all")
         except ApiError as e:
             fix = (
-                "generate a key under Settings > API Keys in Dokploy and set the plugin's api_key option"
+                "generate a key without a rate limit under Settings > API Keys in Dokploy and set the plugin's api_key option"
                 if e.status in (401, 403)
                 else None
             )
