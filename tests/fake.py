@@ -62,7 +62,7 @@ class FakeDokploy:
         app = {
             "applicationId": f"a{body['appName']}",
             "name": body["name"],
-            "appName": body["appName"],
+            "appName": f"{body['appName']}-x1y2z3",
             "applicationStatus": "idle",
             "dockerImage": None,
         }

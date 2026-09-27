@@ -20,6 +20,7 @@ a deploy job) or `DOKPLOY_API_KEY` on a machine.
 
 from __future__ import annotations
 
+import re
 import time
 import tomllib
 from dataclasses import replace
@@ -452,10 +453,11 @@ class DokployTarget(DeployTarget):
     def _find_in(
         self, environment: dict[str, Any], ctx: Context
     ) -> dict[str, Any] | None:
-        wanted = self._app_name(ctx)
+        """Dokploy appends a random suffix to the appName it is given (`shop-prod` becomes `shop-prod-x1y2z3`); either form is this application."""
+        wanted = re.compile(rf"{re.escape(self._app_name(ctx))}(-[a-z0-9]{{6}})?")
 
         for app in environment.get("applications") or []:
-            if app.get("appName") == wanted:
+            if wanted.fullmatch(str(app.get("appName") or "")):
                 return app
 
         return None
