@@ -7,6 +7,7 @@
     project = "shop"                        # Dokploy project; default: [project] name
     application = "shop"                    # Dokploy application; default: [project] name
     port = 8000                             # what the container listens on
+    health = "/health"                      # checked after the deploy; "" skips it
 
     [deploy.domains]                        # optional: without one, Dokploy generates
     prod = "shop.example.com"               # <app>.<server ip>.traefik.me (plain HTTP)
@@ -32,6 +33,7 @@ from apx_dokploy.abc import (
     Api,
     Deployments,
     Domains,
+    Health,
     Provisioner,
     Readiness,
     Record,
@@ -41,6 +43,7 @@ from apx_dokploy.checks import ApiCheck, ApplicationCheck, ImageCheck, SettingsC
 from apx_dokploy.client import Dokploy
 from apx_dokploy.deployments import DokployDeployments
 from apx_dokploy.domains import DokployDomains
+from apx_dokploy.health import HttpHealth
 from apx_dokploy.provision import DokployProvisioner
 from apx_dokploy.registry import OciRegistry
 from apx_dokploy.spec import Options, Spec
@@ -59,6 +62,7 @@ class Parts:
 class DokployTarget(DeployTarget):
     name = "dokploy"
     registry: Registry = OciRegistry()
+    health: Health = HttpHealth()
 
     def __init__(
         self,
@@ -71,6 +75,7 @@ class DokployTarget(DeployTarget):
         domains: dict[str, str] | None = None,
         registry_username: str | None = None,
         registry_password: str | None = None,
+        health: str = "/health",
         **_: object,
     ) -> None:
         self.options = Options(
@@ -83,6 +88,7 @@ class DokployTarget(DeployTarget):
             domains=dict(domains or {}),
             registry_username=registry_username,
             registry_password=registry_password,
+            health=health,
         )
         self._last: Context | None = None
 
@@ -166,6 +172,13 @@ class DokployTarget(DeployTarget):
         status = parts.deployments.wait(app)
         ok = status == "done"
         reason = None if ok else parts.deployments.failure(app)
+        url = parts.domains.url_of(app)
+
+        if ok and url and spec.health:
+            unhealthy = self.health.answers(url.rstrip("/") + spec.health)
+
+            if unhealthy:
+                ok, status, reason = False, "unhealthy", unhealthy
 
         if reason:
             emit(f"dokploy: {reason}")
@@ -180,7 +193,7 @@ class DokployTarget(DeployTarget):
             ok=ok,
             target=self.name,
             version=spec.version,
-            url=parts.domains.url_of(app),
+            url=url,
             error=None
             if ok
             else f"dokploy deployment ended {status}"

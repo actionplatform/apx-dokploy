@@ -17,7 +17,7 @@ The CI publishes `<image>:<version>` on every release (`docker-publish.yml` from
 - `register` declares only — no I/O at import or in `register`.
 - Never monkey-patch `action_platform.*`.
 - Talk to Dokploy through `client.Dokploy` only; tests drive `tests/fake.py`, never the network.
-- One responsibility per module, each behind an ABC in `abc.py`: `Api` (`client.py`), `Registry` (`registry.py`), `Provisioner` (`provision.py`), `Domains` (`domains.py`), `Deployments` (`deployments.py`), `Readiness` (`checks.py`). `target.py` only composes them through `DokployTarget.parts()`; a new behaviour goes in the module that owns it, not in the target.
+- One responsibility per module, each behind an ABC in `abc.py`: `Api` (`client.py`), `Registry` (`registry.py`), `Provisioner` (`provision.py`), `Domains` (`domains.py`), `Deployments` (`deployments.py`), `Health` (`health.py`), `Readiness` (`checks.py`). `target.py` only composes them through `DokployTarget.parts()`; a new behaviour goes in the module that owns it, not in the target.
 - Settings are resolved once per call into a frozen `spec.Spec`; nothing is cached on the target but the last context `verify` and `url` need.
 - `needs` lists every host and environment variable the plugin touches.
 

@@ -8,7 +8,7 @@ from action_platform.core.context import Context
 from action_platform.core.exception import DeployError
 from action_platform.plugins.options import FileOptions
 
-from apx_dokploy import deployments, registry
+from apx_dokploy import deployments, health, registry
 from apx_dokploy import target as target_module
 from apx_dokploy.client import Dokploy
 from apx_dokploy.target import DokployTarget
@@ -45,6 +45,8 @@ class TargetCase(unittest.TestCase):
         )
         self._patch(registry, "image_exists", lambda *a, **k: True)
         self._patch(deployments, "POLL", 0)
+        self._patch(health, "get", lambda url: 200)
+        self._patch(health, "PAUSE", 0)
         self.home = TemporaryDirectory()
         self.addCleanup(self.home.cleanup)
         self._patch(os, "environ", {"AP_HOME": self.home.name})
@@ -207,6 +209,19 @@ class DeployTest(TargetCase):
             "ghcr.io/acme/shop:1.2.0 is not in the registry", str(raised.exception)
         )
         self.assertFalse([c for c in self.fake.calls if c[1] == "application.deploy"])
+
+    def test_an_app_that_never_answers_fails_the_deploy(self):
+        self._patch(health, "get", lambda url: 502)
+
+        result = DokployTarget().deploy(self.ctx())
+
+        self.assertFalse(result.ok)
+        self.assertIn("/health answered 502", result.error)
+
+    def test_an_empty_health_route_skips_the_check(self):
+        self._patch(health, "get", lambda url: 502)
+
+        self.assertTrue(DokployTarget(health="").deploy(self.ctx()).ok)
 
     def test_stages_are_separate_environments(self):
         target = DokployTarget()
