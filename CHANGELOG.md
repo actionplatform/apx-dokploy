@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.0 — 2026-09-27
+
+### Features
+- **target:** every Dokploy deploy reports a URL
+
 ## v0.2.0 — 2026-09-27
 
 ### Features
