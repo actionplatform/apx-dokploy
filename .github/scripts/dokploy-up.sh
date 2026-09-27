@@ -18,9 +18,16 @@ curl -fsS -c "$jar" -H 'content-type: application/json' -H "origin: $url" \
 
 org=$(curl -fsS -b "$jar" -H "origin: $url" "$url/api/auth/organization/list" | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["id"])')
 
-key=$(curl -fsS -b "$jar" -H 'content-type: application/json' -H "origin: $url" \
+created=$(curl -fsS -b "$jar" -H 'content-type: application/json' -H "origin: $url" \
   -d "{\"0\":{\"json\":{\"name\":\"ci\",\"metadata\":{\"organizationId\":\"$org\"}}}}" \
-  "$url/api/trpc/user.createApiKey?batch=1" | python3 -c 'import json,sys;d=json.load(sys.stdin)[0]["result"]["data"]["json"];print(d.get("key") or d.get("apiKey",{}).get("key"))')
+  "$url/api/trpc/user.createApiKey?batch=1")
+echo "$created" | python3 -c '
+import json, sys
+def shape(v):
+    return {k: shape(x) for k, x in v.items()} if isinstance(v, dict) else [shape(x) for x in v[:1]] if isinstance(v, list) else type(v).__name__
+print(json.dumps(shape(json.load(sys.stdin))), file=sys.stderr)'
+key=$(echo "$created" | python3 -c 'import json,sys;d=json.load(sys.stdin)[0]["result"]["data"]["json"];print(d.get("key") or d.get("apiKey",{}).get("key"))')
+echo "key length ${#key}" >&2
 
 echo "DOKPLOY_URL=$url"
 echo "DOKPLOY_API_KEY=$key"
