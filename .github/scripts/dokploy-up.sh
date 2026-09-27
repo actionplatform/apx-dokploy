@@ -19,20 +19,8 @@ curl -fsS -c "$jar" -H 'content-type: application/json' -H "origin: $url" \
 org=$(curl -fsS -b "$jar" -H "origin: $url" "$url/api/auth/organization/list" | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["id"])')
 
 created=$(curl -fsS -b "$jar" -H 'content-type: application/json' -H "origin: $url" \
-  -d "{\"0\":{\"json\":{\"name\":\"ci\",\"metadata\":{\"organizationId\":\"$org\"}}}}" \
+  -d "{\"0\":{\"json\":{\"name\":\"ci\",\"metadata\":{\"organizationId\":\"$org\"},\"rateLimitEnabled\":false}}}" \
   "$url/api/trpc/user.createApiKey?batch=1")
-echo "$created" | python3 -c '
-import json, sys
-def shape(v):
-    return {k: shape(x) for k, x in v.items()} if isinstance(v, dict) else [shape(x) for x in v[:1]] if isinstance(v, list) else type(v).__name__
-print(json.dumps(shape(json.load(sys.stdin))), file=sys.stderr)'
 key=$(echo "$created" | python3 -c 'import json,sys;d=json.load(sys.stdin)[0]["result"]["data"]["json"];print(d.get("key") or d.get("apiKey",{}).get("key"))')
-echo "key length ${#key}" >&2
-for path in "api/project.all" "api/trpc/project.all"; do
-  printf '%s x-api-key: ' "$path" >&2; curl -s -o /tmp/r -w '%{http_code} ' -H "x-api-key: $key" "$url/$path" >&2; head -c 150 /tmp/r >&2; echo >&2
-done
-printf 'cookie project.all: ' >&2; curl -s -o /tmp/r -w '%{http_code} ' -b "$jar" "$url/api/project.all" >&2; head -c 150 /tmp/r >&2; echo >&2
-printf 'session: ' >&2; curl -s -b "$jar" -H "origin: $url" "$url/api/auth/get-session" | head -c 300 >&2; echo >&2
-
 echo "DOKPLOY_URL=$url"
 echo "DOKPLOY_API_KEY=$key"
