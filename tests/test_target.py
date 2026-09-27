@@ -308,6 +308,31 @@ class LifecycleTest(TargetCase):
         self.assertEqual(target.diagnose(self.ctx()).status, "missing")
         target.delete(self.ctx())
 
+    def test_deleting_the_last_scope_removes_environment_and_project(self):
+        target = DokployTarget()
+        target.deploy(self.ctx(stage="dev"))
+        target.deploy(self.ctx(stage="prod"))
+
+        target.delete(self.ctx(stage="dev"))
+
+        self.assertEqual(
+            [e["name"] for e in self.fake.projects[0]["environments"]],
+            ["production", "prod"],
+        )
+
+        target.delete(self.ctx(stage="prod"))
+
+        self.assertEqual(self.fake.projects, [])
+
+    def test_a_project_holding_another_service_stays(self):
+        target = DokployTarget()
+        target.deploy(self.ctx())
+        self.fake.projects[0]["environments"][0]["postgres"] = [{"postgresId": "db"}]
+
+        target.delete(self.ctx())
+
+        self.assertEqual(len(self.fake.projects), 1)
+
     def test_options_from_platform_toml_win(self):
         target = DokployTarget(
             project="acme", application="api", image="registry.example.com/acme/api"

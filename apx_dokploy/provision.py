@@ -63,6 +63,30 @@ class DokployProvisioner(Provisioner):
 
         return app
 
+    def remove(self, spec: Spec) -> list[str]:
+        """Every application of the scope; its environment once nothing else runs there (Dokploy's default one stays); the project once none of its environments holds a service."""
+        gone = []
+
+        for app in self._matches(spec):
+            self.api.post("application.delete", {"applicationId": app["applicationId"]})
+            gone.append(f"application {app['applicationId']}")
+
+        project = self._project(spec)
+        environment = self._environment(project, spec) if project else None
+
+        if environment and not environment.get("isDefault") and _empty(environment):
+            self.api.post(
+                "environment.remove", {"environmentId": environment["environmentId"]}
+            )
+            gone.append(f"environment {spec.stage}")
+            project = self._project(spec)
+
+        if project and all(_empty(e) for e in project.get("environments") or []):
+            self.api.post("project.remove", {"projectId": project["projectId"]})
+            gone.append(f"project {spec.project}")
+
+        return gone
+
     def _project(self, spec: Spec) -> Record | None:
         for project in self.api.get("project.all") or []:
             if project.get("name") == spec.project:
@@ -101,3 +125,19 @@ class DokployProvisioner(Provisioner):
             return None
 
         return self.api.get("application.one", applicationId=found["applicationId"])
+
+
+SERVICES = (
+    "applications",
+    "compose",
+    "libsql",
+    "mariadb",
+    "mongo",
+    "mysql",
+    "postgres",
+    "redis",
+)
+
+
+def _empty(environment: Record) -> bool:
+    return not any(environment.get(kind) for kind in SERVICES)

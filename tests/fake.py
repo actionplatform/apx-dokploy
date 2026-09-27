@@ -57,6 +57,7 @@ class FakeDokploy:
         production = {
             "environmentId": f"{project['projectId']}-production",
             "name": "production",
+            "isDefault": True,
             "applications": [],
         }
         project["environments"].append(production)
@@ -127,6 +128,23 @@ class FakeDokploy:
                     for a in e["applications"]
                     if a["applicationId"] != body["applicationId"]
                 ]
+
+        return {}
+
+    def environment_remove(self, body: dict) -> dict:
+        for p in self.projects:
+            p["environments"] = [
+                e
+                for e in p["environments"]
+                if e["environmentId"] != body["environmentId"]
+            ]
+
+        return {}
+
+    def project_remove(self, body: dict) -> dict:
+        self.projects = [
+            p for p in self.projects if p["projectId"] != body["projectId"]
+        ]
 
         return {}
 
