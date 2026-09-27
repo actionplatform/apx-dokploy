@@ -69,3 +69,16 @@ ruff check . && ruff format --check . && pytest
 ```
 
 Tests never reach the network: `tests/fake.py` is a Dokploy in memory.
+
+| Module | Responsibility (ABC in `abc.py`) |
+|---|---|
+| `target.py` | `DokployTarget`: the core's `DeployTarget` contract, composing the parts below |
+| `spec.py` | `Spec`: options, `platform.toml` and settings resolved once per call |
+| `client.py` | `Api`: the Dokploy REST API |
+| `registry.py` | `Registry`: whether an image tag was published |
+| `provision.py` | `Provisioner`: project → environment (scope) → application |
+| `domains.py` | `Domains`: the scope's domain, or one Dokploy generates |
+| `deployments.py` | `Deployments`: point at the tag, deploy, wait, previous version |
+| `checks.py` | `Readiness`: settings, image, API key, application state |
+| `settings.py` | where a value comes from: argument, job env, process env, options file |
+| `tools.py`, `cli.py` | read-only views for MCP and the terminal |

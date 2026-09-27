@@ -1,0 +1,96 @@
+"""One Dokploy project per repository, one environment per scope, one application inside it — found, or created when missing."""
+
+from __future__ import annotations
+
+import re
+
+from action_platform.logging import emit
+
+from apx_dokploy.abc import Api, Provisioner, Record
+from apx_dokploy.spec import Spec
+
+
+class DokployProvisioner(Provisioner):
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
+    def find(self, spec: Spec) -> Record | None:
+        project = self._project(spec)
+        environment = self._environment(project, spec) if project else None
+        found = self._application(environment, spec) if environment else None
+
+        return self._full(found)
+
+    def ensure(self, spec: Spec) -> Record:
+        project = self._project(spec)
+
+        if project is None:
+            created = self.api.post(
+                "project.create",
+                {"name": spec.project, "description": "Managed by Action Platform"},
+            )
+            emit(f"dokploy: created project {spec.project}")
+            project = self._project(spec) or created
+
+        environment = self._environment(project, spec)
+
+        if environment is None:
+            environment = self.api.post(
+                "environment.create",
+                {
+                    "name": spec.stage,
+                    "projectId": project["projectId"],
+                    "description": f"Scope {spec.stage}",
+                },
+            )
+            emit(f"dokploy: created environment {spec.stage}")
+
+        app = self._full(self._application(environment, spec))
+
+        if app is None:
+            app = self.api.post(
+                "application.create",
+                {
+                    "name": spec.application,
+                    "appName": spec.app_name,
+                    "environmentId": environment["environmentId"],
+                    "description": "Managed by Action Platform",
+                },
+            )
+            emit(f"dokploy: created application {spec.app_name}")
+
+        return app
+
+    def _project(self, spec: Spec) -> Record | None:
+        for project in self.api.get("project.all") or []:
+            if project.get("name") == spec.project:
+                return project
+
+        return None
+
+    @staticmethod
+    def _environment(project: Record, spec: Spec) -> Record | None:
+        for environment in project.get("environments") or []:
+            if environment.get("name") == spec.stage:
+                return environment
+
+        return None
+
+    @staticmethod
+    def _application(environment: Record, spec: Spec) -> Record | None:
+        """The environment is the scope, so the application is the one named after it. `project.all` lists applications with `applicationId`, `name` and `applicationStatus` only; `appName` — which Dokploy suffixes (`shop-prod` becomes `shop-prod-x1y2z3`) — is matched when a response carries it."""
+        app_name = re.compile(rf"{re.escape(spec.app_name)}(-[a-z0-9]{{6}})?")
+
+        for app in environment.get("applications") or []:
+            if app.get("name") == spec.application or app_name.fullmatch(
+                str(app.get("appName") or "")
+            ):
+                return app
+
+        return None
+
+    def _full(self, found: Record | None) -> Record | None:
+        if found is None:
+            return None
+
+        return self.api.get("application.one", applicationId=found["applicationId"])
