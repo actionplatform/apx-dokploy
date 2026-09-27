@@ -28,6 +28,11 @@ def shape(v):
 print(json.dumps(shape(json.load(sys.stdin))), file=sys.stderr)'
 key=$(echo "$created" | python3 -c 'import json,sys;d=json.load(sys.stdin)[0]["result"]["data"]["json"];print(d.get("key") or d.get("apiKey",{}).get("key"))')
 echo "key length ${#key}" >&2
+for path in "api/project.all" "api/trpc/project.all"; do
+  printf '%s x-api-key: ' "$path" >&2; curl -s -o /tmp/r -w '%{http_code} ' -H "x-api-key: $key" "$url/$path" >&2; head -c 150 /tmp/r >&2; echo >&2
+done
+printf 'cookie project.all: ' >&2; curl -s -o /tmp/r -w '%{http_code} ' -b "$jar" "$url/api/project.all" >&2; head -c 150 /tmp/r >&2; echo >&2
+printf 'session: ' >&2; curl -s -b "$jar" -H "origin: $url" "$url/api/auth/get-session" | head -c 300 >&2; echo >&2
 
 echo "DOKPLOY_URL=$url"
 echo "DOKPLOY_API_KEY=$key"
