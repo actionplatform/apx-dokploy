@@ -73,6 +73,10 @@ class Deployments(ABC):
     def previous_version(self, app: Record) -> str | None:
         """The newest version that deployed fine before the current one."""
 
+    @abstractmethod
+    def failure(self, app: Record) -> str | None:
+        """Why the latest deployment failed: its error and the tail of its log."""
+
 
 class Readiness(ABC):
     """One check a deploy needs to pass, run without changing anything."""

@@ -106,6 +106,9 @@ class FakeDokploy:
                 "title": body.get("title"),
                 "status": self.deploy_ends,
                 "createdAt": "now",
+                "errorMessage": "container exited with code 1"
+                if self.deploy_ends == "error"
+                else None,
             },
         )
 
@@ -124,6 +127,9 @@ class FakeDokploy:
 
     def deployment_all(self, query: dict) -> list:
         return self.deployments.get(query["applicationId"], [])
+
+    def deployment_readLogs(self, query: dict) -> str:
+        return "panic: listen tcp :8000: bind: address already in use"
 
     def domain_byApplicationId(self, query: dict) -> list:
         return self.domains.get(query["applicationId"], [])
