@@ -135,6 +135,29 @@ class DeployTest(TargetCase):
         self.assertTrue(target.verify("1.3.0", "prod"))
         self.assertFalse(target.verify("1.2.0", "prod"))
 
+    def test_without_a_domain_dokploy_generates_one_once(self):
+        target = DokployTarget()
+
+        result = target.deploy(self.ctx())
+        target.deploy(self.ctx(version="1.3.0"))
+
+        self.assertEqual(result.url, "http://shop-prod-1a2b3c-203-0-113-7.traefik.me")
+        generated = [c for c in self.fake.calls if c[1] == "domain.generateDomain"]
+        self.assertEqual(len(generated), 1)
+        created = next(c for c in self.fake.calls if c[1] == "domain.create")
+        self.assertFalse(created[2]["https"])
+
+    def test_a_configured_domain_reaches_an_application_that_already_exists(self):
+        DokployTarget().deploy(self.ctx())
+
+        result = DokployTarget(domains={"prod": "shop.example.com"}).deploy(
+            self.ctx(version="1.3.0")
+        )
+
+        hosts = [d["host"] for d in self.fake.domains["ashop-prod"]]
+        self.assertIn("shop.example.com", hosts)
+        self.assertEqual(result.url, "https://shop.example.com")
+
     def test_failed_deployment_is_reported(self):
         self.fake.deploy_ends = "error"
 

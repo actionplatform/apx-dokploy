@@ -8,8 +8,8 @@
     application = "shop"                    # Dokploy application; default: [project] name
     port = 8000                             # what the container listens on
 
-    [deploy.domains]
-    prod = "shop.example.com"
+    [deploy.domains]                        # optional: without one, Dokploy generates
+    prod = "shop.example.com"               # <app>.<server ip>.traefik.me (plain HTTP)
     dev = "shop-dev.example.com"
 
 One Dokploy project per repository, one Dokploy environment per scope (`ctx.stage`),
@@ -110,6 +110,7 @@ class DokployTarget(DeployTarget):
             },
         )
         emit(f"dokploy: {app['appName']} <- {reference}")
+        self._ensure_domain(api, app, ctx)
         api.post(
             "application.deploy",
             {
@@ -364,30 +365,32 @@ class DokployTarget(DeployTarget):
                 },
             )
             emit(f"dokploy: created application {self._app_name(ctx)}")
-            self._ensure_domain(api, app, ctx)
 
         return app
 
     def _ensure_domain(self, api: Dokploy, app: dict[str, Any], ctx: Context) -> None:
+        """The scope's domain from `[deploy.domains]`, over HTTPS; without one, and while the application has none, a host Dokploy generates (`<app>.<ip>.traefik.me`, plain HTTP) so the deploy still reports a URL."""
         host = self.domains.get(ctx.stage)
-
-        if not host:
-            return
-
         existing = (
             api.get("domain.byApplicationId", applicationId=app["applicationId"]) or []
         )
 
-        if any(d.get("host") == host for d in existing):
+        if host:
+            if any(d.get("host") == host for d in existing):
+                return
+        elif existing:
             return
+        else:
+            host = str(api.post("domain.generateDomain", {"appName": app["appName"]}))
 
+        secure = host in self.domains.values()
         api.post(
             "domain.create",
             {
                 "host": host,
                 "port": self.port,
-                "https": True,
-                "certificateType": "letsencrypt",
+                "https": secure,
+                "certificateType": "letsencrypt" if secure else "none",
                 "applicationId": app["applicationId"],
                 "domainType": "application",
             },
@@ -485,7 +488,7 @@ class DokployTarget(DeployTarget):
         except DeployError:
             return None
 
-        for domain in domains:
+        for domain in sorted(domains, key=lambda d: not d.get("https")):
             if domain.get("host"):
                 scheme = "https" if domain.get("https") else "http"
 
