@@ -15,7 +15,12 @@ TIMEOUT = 30
 
 class ApiError(DeployError):
     def __init__(self, status: int, detail: str) -> None:
-        super().__init__(f"dokploy answered {status}: {detail}")
+        hint = (
+            " (a wrong key, or one whose rate limit ran out: create it without a rate limit under Settings > API Keys)"
+            if status == 401
+            else ""
+        )
+        super().__init__(f"dokploy answered {status}: {detail}{hint}")
         self.status = status
         self.detail = detail
 
