@@ -96,6 +96,11 @@ class FakeDokploy:
 
         return app
 
+    def application_saveEnvironment(self, body: dict) -> bool:
+        self._app(body["applicationId"])["env"] = body["env"]
+
+        return True
+
     def application_deploy(self, body: dict) -> dict:
         app = self._app(body["applicationId"])
         app["applicationStatus"] = self.deploy_ends

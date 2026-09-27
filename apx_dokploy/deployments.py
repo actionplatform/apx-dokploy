@@ -35,6 +35,19 @@ class DokployDeployments(Deployments):
             },
         )
         emit(f"dokploy: {app['appName']} <- {spec.reference}")
+
+        if spec.env:
+            self.api.post(
+                "application.saveEnvironment",
+                {
+                    "applicationId": app["applicationId"],
+                    "env": merged(str(app.get("env") or ""), spec.env),
+                    "buildArgs": app.get("buildArgs") or "",
+                    "buildSecrets": app.get("buildSecrets") or "",
+                    "createEnvFile": bool(app.get("createEnvFile", True)),
+                },
+            )
+            emit(f"dokploy: {app['appName']} env {', '.join(sorted(spec.env))}")
         self.api.post(
             "application.deploy",
             {
@@ -107,3 +120,22 @@ class DokployDeployments(Deployments):
         reason = "\n".join(line for line in lines if line)
 
         return reason or None
+
+
+def merged(current: str, wanted: dict[str, str]) -> str:
+    """`current` (Dokploy's KEY=value lines) with `wanted` written over it; the other lines stay as they are."""
+    lines = []
+    seen = set()
+
+    for line in current.splitlines():
+        key = line.split("=", 1)[0].strip()
+
+        if key in wanted:
+            lines.append(f"{key}={wanted[key]}")
+            seen.add(key)
+        else:
+            lines.append(line)
+
+    lines.extend(f"{k}={v}" for k, v in wanted.items() if k not in seen)
+
+    return "\n".join(lines)

@@ -44,6 +44,9 @@ target = "dokploy"
 [deploy.domains]
 prod = "shop.example.com"
 dev = "shop-dev.example.com"
+
+[deploy.env]                             # set on the application before each deploy,
+LOG_LEVEL = "info"                       # over what it already has
 ```
 
 Plugin options (Plugins → Dokploy → Configure on the platform; on a machine, the environment or `~/.action-platform/plugins/dokploy.json`):

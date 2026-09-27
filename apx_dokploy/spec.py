@@ -26,6 +26,7 @@ class Options:
     registry_username: str | None = None
     registry_password: str | None = None
     health: str = "/health"
+    env: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class Spec:
     registry_username: str | None
     registry_password: str | None
     health: str = "/health"
+    env: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def of(cls, ctx: Context, options: Options) -> Spec:
@@ -68,6 +70,7 @@ class Spec:
                 "registry_password", options.registry_password, ctx.env
             ),
             health=options.health,
+            env={str(k): str(v) for k, v in options.env.items()},
         )
 
     @property

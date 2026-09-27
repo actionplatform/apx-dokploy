@@ -9,6 +9,9 @@
     port = 8000                             # what the container listens on
     health = "/health"                      # checked after the deploy; "" skips it
 
+    [deploy.env]                            # set on the application before each deploy
+    LOG_LEVEL = "info"
+
     [deploy.domains]                        # optional: without one, Dokploy generates
     prod = "shop.example.com"               # <app>.<server ip>.traefik.me (plain HTTP)
     dev = "shop-dev.example.com"
@@ -76,6 +79,7 @@ class DokployTarget(DeployTarget):
         registry_username: str | None = None,
         registry_password: str | None = None,
         health: str = "/health",
+        env: dict[str, str] | None = None,
         **_: object,
     ) -> None:
         self.options = Options(
@@ -89,6 +93,7 @@ class DokployTarget(DeployTarget):
             registry_username=registry_username,
             registry_password=registry_password,
             health=health,
+            env=dict(env or {}),
         )
         self._last: Context | None = None
 

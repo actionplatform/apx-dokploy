@@ -223,6 +223,25 @@ class DeployTest(TargetCase):
 
         self.assertTrue(DokployTarget(health="").deploy(self.ctx()).ok)
 
+    def test_deploy_env_is_written_over_what_the_application_has(self):
+        target = DokployTarget(env={"LOG_LEVEL": "debug", "WORKERS": 2})
+        target.deploy(self.ctx())
+        app = self.fake.projects[0]["environments"][1]["applications"][0]
+        app["env"] = "LOG_LEVEL=info\nDATABASE_URL=postgres://db"
+
+        target.deploy(self.ctx(version="1.3.0"))
+
+        self.assertEqual(
+            app["env"], "LOG_LEVEL=debug\nDATABASE_URL=postgres://db\nWORKERS=2"
+        )
+
+    def test_without_deploy_env_the_application_env_is_left_alone(self):
+        DokployTarget().deploy(self.ctx())
+
+        self.assertFalse(
+            [c for c in self.fake.calls if c[1] == "application.saveEnvironment"]
+        )
+
     def test_stages_are_separate_environments(self):
         target = DokployTarget()
         target.deploy(self.ctx(stage="dev"))
