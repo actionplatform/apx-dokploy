@@ -111,6 +111,9 @@ class FakeDokploy:
     def domain_byApplicationId(self, query: dict) -> list:
         return self.domains.get(query["applicationId"], [])
 
+    def domain_generateDomain(self, body: dict) -> str:
+        return f"{body['appName']}-1a2b3c-203-0-113-7.traefik.me"
+
     def domain_create(self, body: dict) -> dict:
         self.domains.setdefault(body["applicationId"], []).append(body)
 
