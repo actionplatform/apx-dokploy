@@ -6,10 +6,9 @@
 # The language version: every build/runtime image exists per version (see actionplatform/images-base versions.json).
 ARG {{ arg }}={{ version }}
 FROM ghcr.io/actionplatform/build-{{ lang }}:${ {{- arg -}} } AS build
-ARG TARGETARCH
 WORKDIR /w
 COPY . .
-RUN AP_ARCH=$([ "$TARGETARCH" = "amd64" ] && echo x86_64 || echo arm64) AP_ARTIFACTS=/out ap-build package
+RUN AP_ARCH=$(case "$(uname -m)" in aarch64|arm64) echo arm64 ;; *) echo x86_64 ;; esac) AP_ARTIFACTS=/out ap-build package
 
 FROM ghcr.io/actionplatform/runtime-{{ lang }}:${ {{- arg -}} }
 WORKDIR /app
