@@ -233,6 +233,15 @@ class DeployTest(TargetCase):
         self.assertEqual(
             (provider[2]["username"], provider[2]["password"]), ("bot", "tok")
         )
+        self.assertEqual(provider[2]["registryUrl"], "ghcr.io")
+
+    def test_a_public_image_sends_no_registry(self):
+        DokployTarget().deploy(self.ctx())
+
+        provider = next(
+            c for c in self.fake.calls if c[1] == "application.saveDockerProvider"
+        )
+        self.assertIsNone(provider[2]["registryUrl"])
 
 
 class LifecycleTest(TargetCase):

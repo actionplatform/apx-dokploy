@@ -8,6 +8,7 @@ from action_platform.core.exception import DeployError
 from action_platform.logging import emit
 
 from apx_dokploy.abc import Api, Deployments, Record
+from apx_dokploy.registry import host_of
 from apx_dokploy.spec import Spec
 
 POLL = 5
@@ -28,7 +29,9 @@ class DokployDeployments(Deployments):
                 "dockerImage": spec.reference,
                 "username": spec.registry_username,
                 "password": spec.registry_password,
-                "registryUrl": None,
+                "registryUrl": host_of(spec.image or "")
+                if spec.registry_username
+                else None,
             },
         )
         emit(f"dokploy: {app['appName']} <- {spec.reference}")
