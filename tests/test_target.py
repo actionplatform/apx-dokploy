@@ -119,7 +119,7 @@ class DeployTest(TargetCase):
             ],
         )
         app = self.fake.projects[0]["environments"][1]["applications"][0]
-        self.assertEqual(app["appName"], "shop-prod")
+        self.assertEqual(app["appName"], "shop-prod-x1y2z3")
         self.assertEqual(app["dockerImage"], "ghcr.io/acme/shop:1.2.0")
         deploy = next(c for c in self.fake.calls if c[1] == "application.deploy")
         self.assertEqual(deploy[2]["title"], "v1.2.0")
@@ -141,7 +141,9 @@ class DeployTest(TargetCase):
         result = target.deploy(self.ctx())
         target.deploy(self.ctx(version="1.3.0"))
 
-        self.assertEqual(result.url, "http://shop-prod-1a2b3c-203-0-113-7.traefik.me")
+        self.assertEqual(
+            result.url, "http://shop-prod-x1y2z3-1a2b3c-203-0-113-7.traefik.me"
+        )
         generated = [c for c in self.fake.calls if c[1] == "domain.generateDomain"]
         self.assertEqual(len(generated), 1)
         created = next(c for c in self.fake.calls if c[1] == "domain.create")
@@ -157,6 +159,14 @@ class DeployTest(TargetCase):
         hosts = [d["host"] for d in self.fake.domains["ashop-prod"]]
         self.assertIn("shop.example.com", hosts)
         self.assertEqual(result.url, "https://shop.example.com")
+
+    def test_deploys_reuse_the_application_dokploy_renamed(self):
+        target = DokployTarget()
+        target.deploy(self.ctx())
+        target.deploy(self.ctx(version="1.3.0"))
+
+        creates = [c for c in self.fake.calls if c[1] == "application.create"]
+        self.assertEqual(len(creates), 1)
 
     def test_failed_deployment_is_reported(self):
         self.fake.deploy_ends = "error"
@@ -216,7 +226,7 @@ class LifecycleTest(TargetCase):
 
         self.assertTrue(diagnosis.ok)
         self.assertEqual(diagnosis.version, "1.2.0")
-        self.assertEqual(diagnosis.details["application"], "shop-prod")
+        self.assertEqual(diagnosis.details["application"], "shop-prod-x1y2z3")
 
         target.delete(self.ctx())
 
