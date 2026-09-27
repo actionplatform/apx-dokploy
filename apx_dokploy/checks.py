@@ -116,6 +116,18 @@ class ApplicationCheck(Readiness):
             )
 
         status = app.get("applicationStatus")
+        extra = self.provisioner.duplicates(spec)
+
+        if extra:
+            ids = ", ".join(a["applicationId"] for a in extra)
+
+            return Check(
+                self.id,
+                True,
+                f"{spec.label} has {len(extra) + 1} applications; the deploy uses {app['applicationId']}",
+                severity="warning",
+                fix=f"delete the others in Dokploy: {ids}",
+            )
 
         if status == "running":
             return Check(

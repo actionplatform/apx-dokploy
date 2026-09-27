@@ -92,6 +92,25 @@ class ReadinessTest(TargetCase):
         self.assertEqual(checks["dokploy.application"].severity, "warning")
         self.assertIn("shop/prod/shop", checks["dokploy.application"].detail)
 
+    def test_duplicate_applications_are_a_warning_naming_them(self):
+        target = DokployTarget()
+        target.deploy(self.ctx())
+        env = self.fake.projects[0]["environments"][1]
+        self.fake.application_create(
+            {
+                "name": "shop",
+                "appName": "shop-prod",
+                "environmentId": env["environmentId"],
+            }
+        )
+        env["applications"][1]["applicationId"] = "second"
+
+        checks = {c.id: c for c in target.readiness(self.ctx())}
+
+        self.assertEqual(checks["dokploy.application"].severity, "warning")
+        self.assertIn("2 applications", checks["dokploy.application"].detail)
+        self.assertIn("second", checks["dokploy.application"].fix)
+
     def test_preflight_raises_on_a_blocking_check(self):
         with self.assertRaises(DeployError) as raised:
             DokployTarget().preflight(self.ctx(key="bad"))

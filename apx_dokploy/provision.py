@@ -15,11 +15,12 @@ class DokployProvisioner(Provisioner):
         self.api = api
 
     def find(self, spec: Spec) -> Record | None:
-        project = self._project(spec)
-        environment = self._environment(project, spec) if project else None
-        found = self._application(environment, spec) if environment else None
+        matches = self._matches(spec)
 
-        return self._full(found)
+        return self._full(matches[0]) if matches else None
+
+    def duplicates(self, spec: Spec) -> list[Record]:
+        return self._matches(spec)[1:]
 
     def ensure(self, spec: Spec) -> Record:
         project = self._project(spec)
@@ -45,7 +46,8 @@ class DokployProvisioner(Provisioner):
             )
             emit(f"dokploy: created environment {spec.stage}")
 
-        app = self._full(self._application(environment, spec))
+        found = self._applications(environment, spec)
+        app = self._full(found[0]) if found else None
 
         if app is None:
             app = self.api.post(
@@ -76,18 +78,23 @@ class DokployProvisioner(Provisioner):
 
         return None
 
+    def _matches(self, spec: Spec) -> list[Record]:
+        project = self._project(spec)
+        environment = self._environment(project, spec) if project else None
+
+        return self._applications(environment, spec) if environment else []
+
     @staticmethod
-    def _application(environment: Record, spec: Spec) -> Record | None:
+    def _applications(environment: Record, spec: Spec) -> list[Record]:
         """The environment is the scope, so the application is the one named after it. `project.all` lists applications with `applicationId`, `name` and `applicationStatus` only; `appName` — which Dokploy suffixes (`shop-prod` becomes `shop-prod-x1y2z3`) — is matched when a response carries it."""
         app_name = re.compile(rf"{re.escape(spec.app_name)}(-[a-z0-9]{{6}})?")
 
-        for app in environment.get("applications") or []:
-            if app.get("name") == spec.application or app_name.fullmatch(
-                str(app.get("appName") or "")
-            ):
-                return app
-
-        return None
+        return [
+            app
+            for app in environment.get("applications") or []
+            if app.get("name") == spec.application
+            or app_name.fullmatch(str(app.get("appName") or ""))
+        ]
 
     def _full(self, found: Record | None) -> Record | None:
         if found is None:
