@@ -226,6 +226,12 @@ class Changing(World):
         self.assertEqual(org.status, "refused")
         self.assertEqual(self.dokploy.members[1]["role"], "member")
 
+    def test_the_owner_is_guarded_whatever_the_case(self):
+        owner = Grant("dokploy", "ana@acme.dev", "org", "owner")
+        op = Op("remove", Grant("dokploy", "Ana@Acme.dev", "org", "owner"))
+
+        self.assertIn(op, self.provider.guard([op], [owner]))
+
     def test_leaving_the_organization_is_drift(self):
         self.bootstrapped()
         self.directory.members = [ANA]

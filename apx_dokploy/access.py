@@ -102,13 +102,17 @@ class DokployAccess(AccessProvider):
         }
 
     def guard(self, ops: list[Op], live: list[Grant]) -> dict[Op, str]:
-        owners = {g.account for g in live if g.resource == "org" and g.level == "owner"}
+        owners = {
+            g.account.lower()
+            for g in live
+            if g.resource == "org" and g.level == "owner"
+        }
 
         return {
             op: f"dokploy: {op.grant.account} owns the instance; the owner is never changed here"
             for op in ops
             if op.grant.resource == "org"
-            and (op.grant.account in owners or op.grant.level == "owner")
+            and (op.grant.account.lower() in owners or op.grant.level == "owner")
         }
 
     def _org(self, op: Op) -> None:
