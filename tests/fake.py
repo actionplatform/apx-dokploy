@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from urllib import parse
 
+from apx_dokploy.abc import Api
 from apx_dokploy.client import ApiError
 
 
@@ -16,6 +17,8 @@ class FakeDokploy:
         self.calls: list[tuple[str, str, Any]] = []
         self.deploy_ends = deploy_ends
         self.keys = {"good"}
+        self.members: list[dict[str, Any]] = []
+        self.invitations: list[dict[str, Any]] = []
 
     def send(self, method: str, target: str, body: dict | None, key: str) -> Any:
         procedure = target.split("/api/")[1].split("?")[0]
@@ -181,3 +184,87 @@ class FakeDokploy:
                         return a
 
         raise ApiError(404, "application not found")
+
+    def member(
+        self, email: str, role: str, projects: list[str] | None = None
+    ) -> dict[str, Any]:
+        n = len(self.members) + 1
+        row = {
+            "id": f"m{n}",
+            "userId": f"u{n}",
+            "role": role,
+            "user": {"id": f"u{n}", "email": email},
+            "accessedProjects": list(projects or []),
+            "accessedEnvironments": [],
+            "accessedServices": [],
+            "accessedGitProviders": [],
+            "accessedServers": [],
+            "canCreateProjects": False,
+            "canAccessToDocker": False,
+        }
+        self.members.append(row)
+
+        return row
+
+    def writes(self) -> list[tuple[str, str, Any]]:
+        return [c for c in self.calls if c[0] != "GET"]
+
+    def user_all(self, _: dict) -> list:
+        return self.members
+
+    def organization_allInvitations(self, _: dict) -> list:
+        return self.invitations
+
+    def organization_inviteMember(self, body: dict) -> dict:
+        self.invitations.append(
+            {
+                "id": f"i{len(self.invitations) + 1}",
+                "email": body["email"],
+                "role": body["role"],
+                "status": "pending",
+            }
+        )
+
+        return {}
+
+    def organization_removeInvitation(self, body: dict) -> dict:
+        self.invitations = [
+            i for i in self.invitations if i["id"] != body["invitationId"]
+        ]
+
+        return {}
+
+    def organization_updateMemberRole(self, body: dict) -> dict:
+        next(m for m in self.members if m["id"] == body["memberId"])["role"] = body[
+            "role"
+        ]
+
+        return {}
+
+    def user_remove(self, body: dict) -> bool:
+        self.members = [m for m in self.members if m["userId"] != body["userId"]]
+
+        return True
+
+    def user_assignPermissions(self, body: dict) -> None:
+        member = next(m for m in self.members if m["userId"] == body["id"])
+        member.update({k: v for k, v in body.items() if k != "id"})
+
+
+class FakeApi(Api):
+    def __init__(self, fake: FakeDokploy, key: str = "good") -> None:
+        self.fake = fake
+        self.key = key
+
+    def get(self, procedure: str, **query: Any) -> Any:
+        target = f"https://dokploy.test/api/{procedure}"
+
+        if query:
+            target += "?" + parse.urlencode(query)
+
+        return self.fake.send("GET", target, None, self.key)
+
+    def post(self, procedure: str, body: dict[str, Any] | None = None) -> Any:
+        return self.fake.send(
+            "POST", f"https://dokploy.test/api/{procedure}", body or {}, self.key
+        )
