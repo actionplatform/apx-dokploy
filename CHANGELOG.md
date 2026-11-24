@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.6.0 — 2026-11-24
+
+### Features
+- **access:** manage members, roles and project access on a Dokploy instance
+
+### Bug Fixes
+- **access:** compare owner accounts without case in guard
+- **access:** name the Dokploy call in an error, never the key
+
+### Docs
+- **access:** resources, levels, owner key and what removing a member does
+
+### Tests
+- **live:** read access and round-trip an invitation on the CI instance
+- **access:** cover the provider and the plugin hook against the in-memory Dokploy
+
 ## v0.5.0 — 2026-09-27
 
 ### Bug Fixes
