@@ -10,6 +10,7 @@ from action_platform.core.exception import DeployError
 from action_platform.core.service_access import AccessError, Grant, Op
 
 from apx_dokploy.abc import Api
+from apx_dokploy.client import ApiError
 
 FLAGS = (
     "canCreateProjects",
@@ -186,13 +187,13 @@ class DokployAccess(AccessProvider):
         try:
             return self.api.get(procedure)
         except DeployError as e:
-            raise AccessError(str(e)) from e
+            raise _failure(procedure, e) from e
 
     def _post(self, procedure: str, body: dict[str, Any]) -> Any:
         try:
             return self.api.post(procedure, body)
         except DeployError as e:
-            raise AccessError(str(e)) from e
+            raise _failure(procedure, e) from e
 
     def _members(self) -> list[dict]:
         return list(self._get("user.all") or [])
@@ -223,6 +224,15 @@ class DokployAccess(AccessProvider):
             ),
             None,
         )
+
+
+def _failure(procedure: str, error: DeployError) -> AccessError:
+    if isinstance(error, ApiError):
+        return AccessError(
+            f"dokploy: {procedure} answered {error.status}: {error.detail}"
+        )
+
+    return AccessError(str(error))
 
 
 def _open(invitation: dict) -> bool:

@@ -97,7 +97,7 @@ class Reading(World):
         with self.assertRaises(AccessError) as caught:
             provider.read()
 
-        self.assertIn("401", str(caught.exception))
+        self.assertIn("dokploy: project.all answered 401", str(caught.exception))
         self.assertNotIn("s3cr3t", str(caught.exception))
 
 
