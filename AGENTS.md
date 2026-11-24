@@ -4,7 +4,7 @@ Rules an AI agent (or a new contributor) follows in this repository.
 
 ## What this is
 
-`apx-dokploy`, an Action Platform plugin: the `dokploy` deploy target, its cloud overlay, `dokploy_*` tools and `action-platform dokploy` commands. The contract every plugin follows is `SPEC.md` in [apx-example](https://github.com/actionplatform/apx-example); read it before changing the shape of anything here.
+`apx-dokploy`, an Action Platform plugin: the `dokploy` deploy target, its cloud overlay, `dokploy_*` tools, `action-platform dokploy` commands and the `dokploy` access provider (`access.py`, returned by `DokployPlugin.access(options)`, which reads `options` only, never the environment). The contract every plugin follows is `SPEC.md` in [apx-example](https://github.com/actionplatform/apx-example); read it before changing the shape of anything here.
 
 ## How a deploy works
 

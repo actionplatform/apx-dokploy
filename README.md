@@ -26,6 +26,7 @@ The build never runs on the platform or on Dokploy. The overlay's workflow publi
 | Delete | `application.delete` of the scope's application |
 | Tools | `dokploy_projects`, `dokploy_applications`, `dokploy_deployments` |
 | Commands | `action-platform dokploy projects\|applications\|deployments` |
+| Access | members, roles and project access of the instance's organization, managed through the platform's [service access](https://github.com/actionplatform/action-platform/blob/master/docs/concept_service_access.md) (see [Access](#access)) |
 
 ## Configuration
 
@@ -59,8 +60,24 @@ Plugin options (Plugins → Dokploy → Configure on the platform; on a machine,
 
 A deploy job carries the options as `AP_DOKPLOY_<KEY>`.
 
+## Access
+
+The plugin brings the `dokploy` service to the platform's service access: who belongs to the instance's organization, with which role, and which projects a member may open. It reads the plugin's `url` and `api_key` options only, and needs an API key created by an **owner** of the organization.
+
+| Resource | Levels | Meaning |
+|---|---|---|
+| `org` | `member`, `admin`, `owner` | membership of the organization. The platform grants `member` and `admin`; the owner is read and never changed |
+| `project/<name>` | `access` | the member may open that project and its environments. Owners and admins already see every project, so project grants for them are not kept |
+
+- Accounts are user emails.
+- Granting `org` sends an invitation. The invitation counts as access while it is pending and unexpired; project access can be granted once it is accepted.
+- A role change updates the member's role.
+- Revoking `org` from a pending invitation cancels it. Revoking it from an accepted member calls Dokploy's `user.remove`, which on a self-hosted instance **deletes the user** from the instance, not only from the organization.
+- Granting or revoking `project/<name>` keeps the member's other permissions as they are.
+
 ## Requirements
 
+- Action Platform 0.33 or newer.
 - Dokploy 0.20 or newer (projects with environments; `application.saveDockerProvider`).
 - An API key **without a rate limit** (Settings > API Keys): a deploy makes more calls than a limited key allows and gets 401 half-way.
 - The image published before the deploy: on GitHub, the overlay's workflow does it on every release. Another CI publishes `<image>:<version>` itself; the `image.published` check waits for it.
@@ -80,6 +97,7 @@ Tests never reach the network: `tests/fake.py` is a Dokploy in memory.
 | `target.py` | `DokployTarget`: the core's `DeployTarget` contract, composing the parts below |
 | `spec.py` | `Spec`: options, `platform.toml` and settings resolved once per call |
 | `client.py` | `Api`: the Dokploy REST API |
+| `access.py` | `DokployAccess`: the access provider (members, roles, project access) |
 | `registry.py` | `Registry`: whether an image tag was published |
 | `provision.py` | `Provisioner`: project → environment (scope) → application |
 | `domains.py` | `Domains`: the scope's domain, or one Dokploy generates |

@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Optional
 
-from action_platform.abc import Option, Plugin, Surface
+from action_platform.abc import AccessProvider, Option, Plugin, Surface
+from action_platform.core.service_access import AccessError
 
 from apx_dokploy import cli
+from apx_dokploy.access import DokployAccess
+from apx_dokploy.client import Dokploy
 from apx_dokploy.tools import register_tools
 
 
@@ -17,7 +21,7 @@ class DokployPlugin(Plugin):
         "Deploy a Docker image the CI publishes to a Dokploy instance; "
         "read its projects, applications and deployments"
     )
-    min_core = "0.28.1"
+    min_core = "0.33"
     needs = [
         "env: DOKPLOY_URL, DOKPLOY_API_KEY on a machine (the plugin's options on the platform)",
         "net: the Dokploy instance's url; the image registry (ghcr.io by default)",
@@ -62,3 +66,16 @@ class DokployPlugin(Plugin):
         if surface.cli is not None:
             cli.options = surface.options
             surface.cli.add_typer(cli.app, name="dokploy")
+
+    def access(self, options: Any) -> Optional[AccessProvider]:
+        url = str(options.get("url") or "").strip()
+
+        if not url:
+            return None
+
+        key = str(options.get("api_key") or "").strip()
+
+        if not key:
+            raise AccessError("dokploy: set the api_key option to manage access")
+
+        return DokployAccess(Dokploy(url, key))
